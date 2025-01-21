@@ -3,7 +3,7 @@ import subprocess
 def main():
     # Command to check sound device:
     # ffmpeg -list_devices true -f dshow -i dummy
-    command = f'ffmpeg/bin/ffmpeg.exe -y -f dshow -i audio="{"Stereo Mix (Realtek Audio)"}" -y -f gdigrab -framerate 30 -i desktop -pix_fmt yuv420p output.mp4'
+    command = f'ffmpeg/bin/ffmpeg.exe -y -f dshow -i audio="{"Stereo Mix (Realtek Audio)"}" -f gdigrab -framerate 30 -i desktop -pix_fmt yuv420p -filter:a "volume={"40dB"}" output.mp4'
    
     try:
         subprocess.run(command, check=True)
