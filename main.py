@@ -13,35 +13,38 @@ from PySide6.QtWidgets import (
 from PySide6.QtCore import (
     QTime,
     QTimer,
-    QThread,
 )
 
-class Recorder(QThread):
-    def __init__(self):
-        super().__init__()
-        self.ffmpeg_process = None
+ffmpeg_process = None
+class Recorder():
+    # def __init__(self):
+    #     print("[+] Recorder")
 
     def run(self):
+        global ffmpeg_process
         command = f'ffmpeg/bin/ffmpeg.exe -y -f dshow -i audio="{"Stereo Mix (Realtek Audio)"}" -f gdigrab -framerate 30 -i desktop -pix_fmt yuv420p -filter:a "volume={"40dB"}" output.mp4'
-        self.ffmpeg_process = subprocess.Popen(command)
+        ffmpeg_process = subprocess.Popen(command)
 
     def stop(self):
         try:
-            self.ffmpeg_process.send_signal(signal.CTRL_C_EVENT)
-            self.ffmpeg_process.wait()
+            global ffmpeg_process
+            ffmpeg_process.send_signal(signal.CTRL_C_EVENT)
+            ffmpeg_process.wait()
     
         except KeyboardInterrupt:
             print("[!] Program terminated by user")
         
         finally:
             self.isRunning()
-            self.ffmpeg_process = None
+            ffmpeg_process = None
         
     def isRunning(self):
-        if self.ffmpeg_process.poll() is None:  # None means the process is still running
+        global ffmpeg_process
+
+        if ffmpeg_process.poll() is None:  # None means the process is still running
             print("[!] Subprocess is running...")
         else:
-            print(f"[-] Subprocess has finished with exit code={self.ffmpeg_process.poll()}")
+            print(f"[-] Subprocess has finished with exit code={ffmpeg_process.poll()}")
             
 
 class MyRec(QWidget):
@@ -79,7 +82,7 @@ class MyRec(QWidget):
         main_layout.addLayout(content_layout)
         self.setLayout(main_layout)
 
-        self.ffmpeg_process = Recorder()
+        self.reccorder = Recorder()
 
     def show_time(self):
         self.time = self.time.addSecs(1)
@@ -87,7 +90,7 @@ class MyRec(QWidget):
 
     def click_start(self):
         try:
-            self.ffmpeg_process.start()
+            self.reccorder.run()
 
         except Exception as e:
             self.message_box(-1, e)
@@ -99,7 +102,7 @@ class MyRec(QWidget):
     def click_stop(self):
         self.timer.stop()
         try:
-            self.ffmpeg_process.stop()
+            self.reccorder.stop()
 
             self.clear_time()
             self.stop_button.setDisabled(True)
@@ -138,5 +141,8 @@ if __name__== "__main__":
     with open("style.qss", "r") as f:
         _style = f.read()
         app.setStyleSheet(_style)
+
+    if (app.exec() == 0 and ffmpeg_process):
+        ffmpeg_process.terminate()
 
     sys.exit(app.exec())
