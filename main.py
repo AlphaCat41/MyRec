@@ -1,5 +1,6 @@
 import subprocess
 import sys
+import signal
 from PySide6.QtWidgets import (
     QApplication,
     QWidget,
@@ -7,11 +8,42 @@ from PySide6.QtWidgets import (
     QHBoxLayout,
     QPushButton,
     QLCDNumber,
+    QMessageBox
 ) 
 from PySide6.QtCore import (
     QTime,
     QTimer,
+    QThread,
 )
+
+class Recorder(QThread):
+    def __init__(self):
+        super().__init__()
+        self.ffmpeg_process = None
+
+    def run(self):
+        command = f'ffmpeg/bin/ffmpeg.exe -y -f dshow -i audio="{"Stereo Mix (Realtek Audio)"}" -f gdigrab -framerate 30 -i desktop -pix_fmt yuv420p -filter:a "volume={"40dB"}" output.mp4'
+        self.ffmpeg_process = subprocess.Popen(command)
+
+    def stop(self):
+        try:
+            self.ffmpeg_process.send_signal(signal.CTRL_C_EVENT)
+            self.ffmpeg_process.wait()
+    
+        except KeyboardInterrupt:
+            print("[!] Program terminated by user")
+        
+        finally:
+            self.isRunning()
+            self.ffmpeg_process = None
+        
+    def isRunning(self):
+        if self.ffmpeg_process.poll() is None:  # None means the process is still running
+            print("[!] Subprocess is running...")
+        else:
+            print(f"[-] Subprocess has finished with exit code={self.ffmpeg_process.poll()}")
+            
+
 class MyRec(QWidget):
     def __init__(self):
         super().__init__()
@@ -47,20 +79,36 @@ class MyRec(QWidget):
         main_layout.addLayout(content_layout)
         self.setLayout(main_layout)
 
+        self.ffmpeg_process = Recorder()
+
     def show_time(self):
         self.time = self.time.addSecs(1)
         self.lcd_clock.display(self.time.toString("hh:mm:ss"))
 
     def click_start(self):
+        try:
+            self.ffmpeg_process.start()
+
+        except Exception as e:
+            self.message_box(-1, e)
+
         self.timer.start(1000)
         self.stop_button.setDisabled(False)
         self.start_button.setDisabled(True)
     
     def click_stop(self):
         self.timer.stop()
-        self.clear_time()
-        self.stop_button.setDisabled(True)
-        self.start_button.setDisabled(False)
+        try:
+            self.ffmpeg_process.stop()
+
+            self.clear_time()
+            self.stop_button.setDisabled(True)
+            self.start_button.setDisabled(False)  
+            self.message_box(0, "The video has been successfully saved.")    
+
+        except Exception as e:
+            self.message_box(-1, e)
+
 
     def clear_time(self):
         self.timer = QTimer()
@@ -68,15 +116,18 @@ class MyRec(QWidget):
         self.timer.timeout.connect(self.show_time)
         self.lcd_clock.display(self.time.toString("hh:mm:ss"))
 
-    # Command to check sound device:
-    # ffmpeg -list_devices true -f dshow -i dummy
-    # command = f'ffmpeg/bin/ffmpeg.exe -y -f dshow -i audio="{"Stereo Mix (Realtek Audio)"}" -f gdigrab -framerate 30 -i desktop -pix_fmt yuv420p -filter:a "volume={"40dB"}" output.mp4'
-   
-    # try:
-    #     subprocess.run(command, check=True)
+    def message_box(self, type, msg):
+        msgBox = QMessageBox()
+        match(type):
+            case -1:
+                msgBox.setIcon(QMessageBox.Icon.Critical)  
+                msgBox.setText(f"{msg}")
+                msgBox.exec()
 
-    # except subprocess.CalledProcessError as e:
-    #     print(f"Error while executing ffmpeg: {e}")
+            case 0:
+                msgBox.setIcon(QMessageBox.Icon.Information)  
+                msgBox.setText(f"{msg}")
+                msgBox.exec()
 
 if __name__== "__main__":
     app = QApplication()
