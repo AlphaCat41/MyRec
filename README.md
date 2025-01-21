@@ -8,5 +8,5 @@ python main.py
 ```
 ## Build
 ```
-- pyinstaller --onefile --noconsole main.py
+pyinstaller --onefile --noconsole main.py
 ```
