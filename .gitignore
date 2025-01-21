@@ -1,2 +1,5 @@
 /ffmpeg
 *.mp4
+/dist
+/build
+*spec
