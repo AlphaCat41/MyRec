@@ -1,7 +1,7 @@
 # MyRec
 Video and Audio recording Program
 ## Requirement
-- ffmpeg
+- ffmpeg (https://phoenixnap.com/kb/ffmpeg-windows)
 ## Run
 - python main.py
 ## Save & Exit
