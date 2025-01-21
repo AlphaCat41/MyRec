@@ -1,6 +1,6 @@
 import subprocess
 import sys
-import signal
+# import signal
 from PySide6.QtWidgets import (
     QApplication,
     QWidget,
@@ -15,38 +15,24 @@ from PySide6.QtCore import (
     QTimer,
 )
 
-ffmpeg_process = None
 class Recorder():
-    # def __init__(self):
-    #     print("[+] Recorder")
+    def __init__(self):
+        self.ffmpeg_process = None
 
     def run(self):
-        global ffmpeg_process
         command = f'ffmpeg/bin/ffmpeg.exe -y -f dshow -i audio="{"Stereo Mix (Realtek Audio)"}" -f gdigrab -framerate 30 -i desktop -pix_fmt yuv420p -filter:a "volume={"40dB"}" output.mp4'
-        ffmpeg_process = subprocess.Popen(command)
+        self.ffmpeg_process = subprocess.Popen(command, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
 
     def stop(self):
-        try:
-            global ffmpeg_process
-            ffmpeg_process.send_signal(signal.CTRL_C_EVENT)
-            ffmpeg_process.wait()
+        self.ffmpeg_process.stdin.write("q\n")
+        self.ffmpeg_process.stdin.flush()
+        stdout, stderr = self.ffmpeg_process.communicate()
+        print("Subprocess terminated.")
+        print("stdout:", stdout)
+        print("*" * 50)
+        print("stderr:", stderr)
+        print("*" * 50)
     
-        except KeyboardInterrupt:
-            print("[!] Program terminated by user")
-        
-        finally:
-            self.isRunning()
-            ffmpeg_process = None
-        
-    def isRunning(self):
-        global ffmpeg_process
-
-        if ffmpeg_process.poll() is None:  # None means the process is still running
-            print("[!] Subprocess is running...")
-        else:
-            print(f"[-] Subprocess has finished with exit code={ffmpeg_process.poll()}")
-            
-
 class MyRec(QWidget):
     def __init__(self):
         super().__init__()
@@ -141,8 +127,5 @@ if __name__== "__main__":
     with open("style.qss", "r") as f:
         _style = f.read()
         app.setStyleSheet(_style)
-
-    if (app.exec() == 0 and ffmpeg_process):
-        ffmpeg_process.terminate()
 
     sys.exit(app.exec())
