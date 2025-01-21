@@ -4,5 +4,5 @@ Video and Audio recording Program
 - ffmpeg
 ## Run
 - python main.py
-## Save & Exit
-- press command "q"
+## Build
+- pyinstaller --onefile --noconsole main.py
