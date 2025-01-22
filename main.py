@@ -1,6 +1,6 @@
 import subprocess
 import sys
-import signal
+import pyaudio
 from PySide6.QtWidgets import (
     QApplication,
     QWidget,
@@ -8,7 +8,9 @@ from PySide6.QtWidgets import (
     QHBoxLayout,
     QPushButton,
     QLCDNumber,
-    QMessageBox
+    QMessageBox,
+    QComboBox,
+    QLabel
 ) 
 from PySide6.QtCore import (
     QTime,
@@ -18,15 +20,19 @@ from PySide6.QtCore import (
 class Recorder():
     def __init__(self):
         self.ffmpeg_process = None
+        self.sound_device = None
 
     def run(self):
-        command = f'ffmpeg/bin/ffmpeg.exe -y -f dshow -i audio="{"Stereo Mix (Realtek Audio)"}" -f gdigrab -framerate 30 -i desktop -pix_fmt yuv420p -filter:a "volume={"40dB"}" output.mp4'
+        command = f'ffmpeg/bin/ffmpeg.exe -y -f dshow -i audio="{self.sound_device}" -f gdigrab -framerate 30 -i desktop -pix_fmt yuv420p -filter:a "volume={"40dB"}" output.mp4'
         self.ffmpeg_process = subprocess.Popen(command, stdin=subprocess.PIPE, text=True)
 
     def stop(self):
         self.ffmpeg_process.stdin.write("q\n")
         self.ffmpeg_process.communicate()
-    
+        
+    def set_sound_device(self, name):
+        self.sound_device = name
+
 class MyRec(QWidget):
     def __init__(self):
         super().__init__()
@@ -36,9 +42,16 @@ class MyRec(QWidget):
         main_layout = QVBoxLayout()
         content_layout = QHBoxLayout()
         button_layout = QVBoxLayout()
+        option_layout = QHBoxLayout()
 
         self.start_button = QPushButton("Start")
         self.stop_button = QPushButton("Stop")
+
+        self.sound_device_list = QComboBox()
+        select_sound_label = QLabel("Select Sound Device: ")
+        self.sound_device_list.setEditable(True)
+        self.add_items_to_combobox()
+        self.sound_device_list.currentTextChanged.connect(self.on_text_changed)
 
         self.stop_button.setDisabled(True)
         self.start_button.setDisabled(False)
@@ -54,15 +67,33 @@ class MyRec(QWidget):
         self.lcd_clock.setDigitCount(8)
         self.lcd_clock.display(self.time.toString("hh:mm:ss"))
 
+        option_layout.addWidget(select_sound_label)
+        option_layout.addWidget(self.sound_device_list)
         content_layout.addWidget(self.lcd_clock)
         button_layout.addWidget(self.start_button)
         button_layout.addWidget(self.stop_button)
 
         content_layout.addLayout(button_layout)
+        main_layout.addLayout(option_layout)
         main_layout.addLayout(content_layout)
         self.setLayout(main_layout)
 
         self.reccorder = Recorder()
+        self.reccorder.set_sound_device(self.sound_device_list.currentText())
+
+    def on_text_changed(self, text):
+        self.sound_device_list.setCurrentText(text)
+        self.reccorder.set_sound_device(self.sound_device_list.currentText())
+
+    def add_items_to_combobox(self):
+        p = pyaudio.PyAudio()
+
+        device_count = p.get_device_count()
+        for i in range(device_count):
+            device_info = p.get_device_info_by_index(i)
+            # print(f"Device {i}: {device_info['name']} - {device_info['maxInputChannels']} input channels, {device_info['maxOutputChannels']} output channels")
+            self.sound_device_list.addItem(device_info['name'])
+            
 
     def show_time(self):
         self.time = self.time.addSecs(1)
