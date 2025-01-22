@@ -1,0 +1,18 @@
+QWidget {
+    background-color: black;
+    color: white
+}
+
+QPushButton {
+    background-color: #2ABf9E;
+    color: white;
+    padding: 20px;
+    font: bold 18px;
+    border-radius: 10px;
+    max-width: 50px
+}
+
+QPushButton:disabled{
+    background-color: black;
+    color: black
+}
