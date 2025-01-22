@@ -1,6 +1,6 @@
 import subprocess
 import sys
-# import signal
+import signal
 from PySide6.QtWidgets import (
     QApplication,
     QWidget,
@@ -21,17 +21,11 @@ class Recorder():
 
     def run(self):
         command = f'ffmpeg/bin/ffmpeg.exe -y -f dshow -i audio="{"Stereo Mix (Realtek Audio)"}" -f gdigrab -framerate 30 -i desktop -pix_fmt yuv420p -filter:a "volume={"40dB"}" output.mp4'
-        self.ffmpeg_process = subprocess.Popen(command, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        self.ffmpeg_process = subprocess.Popen(command, stdin=subprocess.PIPE, text=True)
 
     def stop(self):
         self.ffmpeg_process.stdin.write("q\n")
-        self.ffmpeg_process.stdin.flush()
-        stdout, stderr = self.ffmpeg_process.communicate()
-        print("Subprocess terminated.")
-        print("stdout:", stdout)
-        print("*" * 50)
-        print("stderr:", stderr)
-        print("*" * 50)
+        self.ffmpeg_process.communicate()
     
 class MyRec(QWidget):
     def __init__(self):
