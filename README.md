@@ -12,3 +12,5 @@ python main.py
 ```
 pyinstaller --onefile --noconsole main.py
 ```
+## Bug
+- The user needs to edit the sound device name properly.
